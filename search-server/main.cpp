@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 #include <numeric>
+#include <conio.h>
 using namespace std;
 
 const int MAX_RESULT_DOCUMENT_COUNT = 5;
@@ -345,7 +346,6 @@ void RunTestImpl(Func func, const string& s) {
 #define RUN_TEST(func) RunTestImpl(func , #func)
 // -------- Начало модульных тестов поисковой системы ----------
 
-// Тест проверяет, что поисковая система исключает стоп-слова при добавлении документов
 void TestAddDocument(){
     {
         SearchServer server;
@@ -524,24 +524,96 @@ void TestPredicateFiltering() {
         SearchServer server;
         server.AddDocument(0, "cat in the city"s, DocumentStatus::ACTUAL, { 1, 2, 3 });
         server.AddDocument(1, "dog in the city"s, DocumentStatus::BANNED, { 2, 3, 4 });
-        server.AddDocument(2, "cats and cat on the roof", DocumentStatus::IRRELEVANT, { 3, 4, 5 });
-        server.AddDocument(3, "bird and cat on the roof", DocumentStatus::REMOVED, { 4, 5, 6 });
+        server.AddDocument(2, "cats and cat on the roof"s, DocumentStatus::IRRELEVANT, { 3, 4, 5 });
+        server.AddDocument(3, "bird and cat on the roof"s, DocumentStatus::REMOVED, { 4, 5, 6 });
         server.AddDocument(4, "white fox and squrrel"s, DocumentStatus::IRRELEVANT, { 6, -62, -4443 });
         server.AddDocument(5, "white cat fluffy tail"s, DocumentStatus::ACTUAL, { -56, 0, 0 });
-        server.AddDocument(6, "brown squirrel with a fluffy tail", DocumentStatus::BANNED, {  });
-        server.AddDocument(7, "cat and cat on the roof", DocumentStatus::IRRELEVANT, { 0, 0, 0 });
-        server.AddDocument(8, "cat and cat on the roof", DocumentStatus::REMOVED, { -8, 4, 5 });
-        server.AddDocument(9, "cat and cat on the roof", DocumentStatus::ACTUAL, { 0, 2, 3 });
+        server.AddDocument(6, "brown squirrel with a fluffy tail"s, DocumentStatus::BANNED, {  });
+        server.AddDocument(7, "cat and cat on the roof"s, DocumentStatus::IRRELEVANT, { 0, 0, 0 });
+        server.AddDocument(8, "cat and cat on the roof"s, DocumentStatus::REMOVED, { -8, -4, -5 });
+        server.AddDocument(9, "cat and cat on the roof"s, DocumentStatus::ACTUAL, { 0, 2, 3 });
         const auto found_docs = server.FindTopDocuments("white fluffy cat", [](int document_id, DocumentStatus status, int rating){
             return document_id % 2 == 0;
         });
         ASSERT_EQUAL(found_docs.size(), 5u);
 
         const auto found_docs1 = server.FindTopDocuments("white fluffy cat", [](int document_id, DocumentStatus status, int rating){
-            return document_id % 2 == 0 && status == DocumentStatus::BANNED;
+            return ((document_id % 2 == 0) && (status == DocumentStatus::BANNED));
         });
         ASSERT_EQUAL(found_docs1.size(), 1u);
         ASSERT(found_docs1.front().id == 6);
+
+        const auto found_docs2 = server.FindTopDocuments("white fluffy cat", [](int document_id, DocumentStatus status, int rating){
+            return ((status == DocumentStatus::ACTUAL) && (rating > 0));
+        });
+        ASSERT_EQUAL(found_docs2.size(), 2u);
+        ASSERT(found_docs2.front().id == 9);
+
+        const auto found_docs3 = server.FindTopDocuments("white fluffy cat", [](int document_id, DocumentStatus status, int rating){
+            return ((status != DocumentStatus::BANNED) && (rating > 1) && (document_id < 5));
+        });
+        ASSERT_EQUAL(found_docs3.size(), 3u);
+        ASSERT(found_docs3.front().id == 0);
+        ASSERT(found_docs3.back().id == 2);
+    }
+}
+void TestStatusSearch() {
+    {
+        SearchServer server;
+        server.AddDocument(0, "cat in the city"s, DocumentStatus::ACTUAL, { 1, 2, 3 });
+        server.AddDocument(1, "dog in the city"s, DocumentStatus::BANNED, { 2, 3, 4 });
+        server.AddDocument(2, "cats and cat on the roof"s, DocumentStatus::IRRELEVANT, { 3, 4, 5 });
+        server.AddDocument(3, "bird and cat on the roof"s, DocumentStatus::REMOVED, { 4, 5, 6 });
+        server.AddDocument(4, "white fox and squrrel"s, DocumentStatus::IRRELEVANT, { 6, -62, -4443 });
+        server.AddDocument(5, "white cat fluffy tail"s, DocumentStatus::ACTUAL, { -56, 0, 0 });
+        server.AddDocument(6, "brown squirrel with a fluffy tail"s, DocumentStatus::BANNED, {  });
+        server.AddDocument(7, "cat and cat on the roof"s, DocumentStatus::IRRELEVANT, { 0, 0, 0 });
+        server.AddDocument(8, "cat and cat on the roof"s, DocumentStatus::REMOVED, { -8, -4, -5 });
+        server.AddDocument(9, "cat and cat on the roof"s, DocumentStatus::ACTUAL, { 0, 2, 3 });
+        const auto found_docs = server.FindTopDocuments("white fluffy cat", DocumentStatus::ACTUAL);
+        ASSERT_EQUAL(found_docs.size(), 3u);
+
+        const auto found_docs1 = server.FindTopDocuments("white fluffy cat", DocumentStatus::BANNED);
+        
+        ASSERT_EQUAL(found_docs1.size(), 1u);
+        ASSERT(found_docs1.front().id == 6);
+
+        const auto found_docs2 = server.FindTopDocuments("-white fluffy cat", DocumentStatus::IRRELEVANT);
+        ASSERT_EQUAL(found_docs2.size(), 2u);
+        ASSERT(found_docs2.front().id == 7);
+
+        const auto found_docs3 = server.FindTopDocuments("white fluffy cat", DocumentStatus::REMOVED);
+        
+        ASSERT_EQUAL(found_docs3.size(), 2u);
+        ASSERT(found_docs3.front().id == 8);
+        ASSERT(found_docs3.back().id == 3);
+    }
+}
+void TestRelevanceCalculation() {
+    {
+        SearchServer server;
+        server.AddDocument(0, "cat in the city"s, DocumentStatus::ACTUAL, { 1, 2, 3 });
+        server.AddDocument(1, "dog in the city"s, DocumentStatus::BANNED, { 2, 3, 4 });
+        server.AddDocument(2, "cats and cat on the roof"s, DocumentStatus::IRRELEVANT, { 3, 4, 5 });
+        server.AddDocument(3, "bird and cat on the roof"s, DocumentStatus::REMOVED, { 4, 5, 6 });
+        server.AddDocument(4, "white fox and squrrel"s, DocumentStatus::IRRELEVANT, { 6, -62, -4443 });
+        server.AddDocument(5, "white cat fluffy tail"s, DocumentStatus::ACTUAL, { -56, 0, 0 });
+        server.AddDocument(6, "brown squirrel with a fluffy tail"s, DocumentStatus::BANNED, {  });
+        server.AddDocument(7, "cat and cat on the roof"s, DocumentStatus::IRRELEVANT, { 0, 0, 0 });
+        server.AddDocument(8, "cat and cat on the roof"s, DocumentStatus::REMOVED, { -8, -4, -5 });
+        server.AddDocument(9, "cat and cat on the roof"s, DocumentStatus::ACTUAL, { 0, 2, 3 });
+        const auto found_docs = server.FindTopDocuments("white fluffy cat or dog with a big tail", [](int document_id, DocumentStatus status, int rating){
+            return (status == DocumentStatus::ACTUAL || 
+            status == DocumentStatus::BANNED || 
+            status == DocumentStatus::REMOVED || 
+            status == DocumentStatus::IRRELEVANT);
+        });
+        ASSERT_EQUAL(found_docs.size(), 5u);
+        ASSERT(found_docs[0].relevance - 1.3040076684760487 < RELEVANCE_EQUALITY_THRESHOLD);
+        ASSERT(found_docs[1].relevance - 1.2962471703102583 < RELEVANCE_EQUALITY_THRESHOLD);
+        ASSERT(found_docs[2].relevance - 0.57564627324851148 < RELEVANCE_EQUALITY_THRESHOLD);
+        ASSERT(found_docs[3].relevance - 0.40235947810852507 < RELEVANCE_EQUALITY_THRESHOLD);
+        ASSERT(found_docs[4].relevance - 0.11889164797957746 < RELEVANCE_EQUALITY_THRESHOLD);
     }
 }
 /*
@@ -557,13 +629,10 @@ void TestSearchServer() {
     RUN_TEST(TestSortingOnRelevance);
     RUN_TEST(TestAverageRatingCalculation);
     RUN_TEST(TestPredicateFiltering);
+    RUN_TEST(TestStatusSearch);
+    RUN_TEST(TestRelevanceCalculation);
 
     // Не забудьте вызывать остальные тесты здесь
-    /*
-    Фильтрация результатов поиска с использованием предиката, задаваемого пользователем.
-    Поиск документов, имеющих заданный статус.
-    Корректное вычисление релевантности найденных документов.
-    */
 }
 
 int main()
@@ -591,5 +660,6 @@ int main()
     {
         PrintDocument(document);
     }
+    getch();
     return 0;
 }
