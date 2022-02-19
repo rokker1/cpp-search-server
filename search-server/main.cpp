@@ -89,7 +89,8 @@ public:
     : stop_words_(MakeUniqueNonEmptyStrings(stop_words)) {
         for(const string& word : stop_words_) {
             if (!IsValidWord(word)) {
-                throw invalid_argument("stop_word contains special sign!"s);
+                
+                throw invalid_argument(string("stop_word \""s+word+"\" contains special sign!"s));
             }
         }
     }
@@ -99,8 +100,12 @@ public:
     }
 
     void AddDocument(int document_id, const string& document, DocumentStatus status, const vector<int>& ratings) {
-        if((document_id < 0) || (documents_.count(document_id) > 0)) {
-            throw invalid_argument("wrong document id!"s);
+        if(document_id < 0) {
+            throw invalid_argument(string("Wrong document id! Can't be less than 0!"s));
+        }
+
+        if(documents_.count(document_id) > 0) {
+            throw invalid_argument(string("Wrong document id! This document_id already exists!"s));
         }
         
         // for(const string& word : SplitIntoWords(document)) {
@@ -110,7 +115,7 @@ public:
         // }
         vector<string> words;
         if (!SplitIntoWordsNoStop(document, words)) {
-            throw invalid_argument("Ivalid document text!"s);
+            throw invalid_argument("Invalid document text!"s);
         }
 
         const double inv_word_count = 1.0 / words.size();
