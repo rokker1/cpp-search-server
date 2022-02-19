@@ -128,10 +128,8 @@ public:
 
     template <typename DocumentPredicate>
     vector<Document> FindTopDocuments(const string& raw_query, DocumentPredicate document_predicate) const {
-        Query query;
-        if (!ParseQuery(raw_query, query)) {
-            throw invalid_argument("bad query!"s);
-        }
+        Query query = ParseQuery(raw_query);
+        
         vector<Document> matched_documents = FindAllDocuments(query, document_predicate);
         sort(matched_documents.begin(), matched_documents.end(), [](const Document& lhs, const Document& rhs){
             if(abs(lhs.relevance - rhs.relevance) < RELEVANCE_EQUALITY_THRESHOLD) {
@@ -167,11 +165,7 @@ public:
     }
 
     tuple<vector<string>, DocumentStatus> MatchDocument(const string& raw_query, int document_id) const {
-        Query query;
-        if(!ParseQuery(raw_query, query)) {
-            throw invalid_argument("bad query!"s);
-        }
-
+        Query query = ParseQuery(raw_query);
         vector<string> matched_words{};
         for(const string& query_word : query.plus_words) {
             if(word_to_document_freqs_.count(query_word) == 0) {
@@ -242,25 +236,25 @@ private:
         bool is_stop;
     };
 
-    [[nodiscard]] bool ParseQueryWord(string text, QueryWord& result) const {
-        // Empty result by initializing it with default constructed QueryWord
-        result = {};
-
+    QueryWord ParseQueryWord(string text) const {
         if(text.empty()) {
-            return false;
+            throw invalid_argument("Empty query!"s);
         }
-
         bool is_minus = false;
         if(text[0] == '-') {
             is_minus = true;
             text = text.substr(1);
         }
-        if(text.empty() || text[0] == '-' || !IsValidWord(text)) {
-            return false;
+        if(text.empty()) {
+            throw invalid_argument("No text after minus sign!"s);
         }
-
-        result = QueryWord{text, is_minus, IsStopWord(text)};
-        return true;
+        if(text[0] == '-') {
+            throw invalid_argument("Double minus at the begining of the word!"s);
+        }
+        if(!IsValidWord(text)) {
+            throw invalid_argument("The query word \""s + text + "\" contains a special sign!"s);
+        }
+        return QueryWord{text, is_minus, IsStopWord(text)};
     }
 
     struct Query {
@@ -268,24 +262,21 @@ private:
         set<string> minus_words;
     };
 
-    [[nodiscard]] bool ParseQuery(const string& text, Query& result) const {
+    Query ParseQuery(const string& text) const {
         // Empty result by initializing it with default constructed Query
-        result = {};
+        Query query;
         for(const string& word : SplitIntoWords(text)) {
-            QueryWord query_word;
-            if(!ParseQueryWord(word, query_word)) {
-                return false;
-            }
+            QueryWord query_word = ParseQueryWord(word);
             if(!query_word.is_stop) {
                 if(query_word.is_minus) {
-                    result.minus_words.insert(query_word.data);
+                    query.minus_words.insert(query_word.data);
                 }
                 else {
-                    result.plus_words.insert(query_word.data);
+                    query.plus_words.insert(query_word.data);
                 }
             }
         }
-        return true;
+        return query;
     }
 
     // Existence required
