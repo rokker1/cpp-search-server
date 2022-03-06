@@ -6,6 +6,8 @@
 #include "request_queue.h"
 #include "search_server.h"
 #include "string_processing.h"
+#include "search_server_functions.h"
+#include "output_functions.h"
 
 using namespace std;
 

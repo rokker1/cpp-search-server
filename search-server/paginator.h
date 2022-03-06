@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
 #include <vector>
+#include <cassert>
 
 using namespace std;
 
@@ -42,11 +43,11 @@ template <typename Iterator>
 class Paginator {
 public:
     Paginator(Iterator begin, Iterator end, size_t page_size) {
+        assert(end >= begin && page_size > 0);
         for (size_t left = distance(begin, end); left > 0;) {
             const size_t current_page_size = min(page_size, left);
             const Iterator current_page_end = next(begin, current_page_size);
             pages_.push_back({begin, current_page_end});
-
             left -= current_page_size;
             begin = current_page_end;
         }

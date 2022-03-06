@@ -21,3 +21,5 @@ struct Document {
 };
 
 ostream& operator<<(ostream& out, const Document& document);
+
+void PrintDocument(const Document& document);
