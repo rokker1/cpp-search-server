@@ -10,7 +10,7 @@
 #include <iostream>
 #include <cmath>
 #include <numeric>
-#include "output_functions.h"
+
 
 constexpr int MAX_RESULT_DOCUMENT_COUNT = 5;
 constexpr double RELEVANCE_EQUALITY_TRESHOLD = 1e-6;
@@ -35,10 +35,21 @@ public:
 
     int GetDocumentCount() const;
 
-    int GetDocumentId(int index) const;
+    //int GetDocumentId(int index) const;
 
     std::tuple<std::vector<std::string>, DocumentStatus> MatchDocument(const std::string& raw_query, int document_id) const;
 
+    std::vector<int>::const_iterator begin() const {
+        return document_ids_.begin();
+    }
+
+    std::vector<int>::const_iterator end() const {
+        return document_ids_.end();
+    }
+
+    const map<string, double>& GetWordFrequencies(int document_id) const;
+
+    void RemoveDocument(int document_id);
 private:
 
     struct DocumentData {
