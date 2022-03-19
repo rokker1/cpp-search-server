@@ -32,27 +32,27 @@ private:
     const SearchServer& server_;
 };
 
-    template <typename DocumentPredicate>
-    std::vector<Document> RequestQueue::AddFindRequest(const std::string& raw_query, DocumentPredicate document_predicate) {
+template <typename DocumentPredicate>
+std::vector<Document> RequestQueue::AddFindRequest(const std::string& raw_query, DocumentPredicate document_predicate) {
 
-        vector<Document> result = server_.FindTopDocuments(raw_query, document_predicate);
-        QueryResult query_result = {result, result.empty() ? true : false};
-        if(requests_.size() < min_in_day_) {
-            if(query_result.no_result) {
-                ++no_result_requests_count_;
-            }
-            requests_.push_back(query_result);
+    vector<Document> result = server_.FindTopDocuments(raw_query, document_predicate);
+    QueryResult query_result = {result, result.empty() ? true : false};
+    if(requests_.size() < min_in_day_) {
+        if(query_result.no_result) {
+            ++no_result_requests_count_;
         }
-        else {
-            if(requests_.front().no_result) {
-                --no_result_requests_count_;
-            }
-            requests_.pop_front();
-            if(query_result.no_result) {
-                ++no_result_requests_count_;
-            }
-            requests_.push_back(query_result);
-        }
-
-        return result;
+        requests_.push_back(query_result);
     }
+    else {
+        if(requests_.front().no_result) {
+            --no_result_requests_count_;
+        }
+        requests_.pop_front();
+        if(query_result.no_result) {
+            ++no_result_requests_count_;
+        }
+        requests_.push_back(query_result);
+    }
+
+    return result;
+}
