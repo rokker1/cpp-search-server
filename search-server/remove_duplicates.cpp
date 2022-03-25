@@ -9,6 +9,14 @@ bool CompareMapByKeys(const map<string, double>& m1, const map<string, double>& 
 			continue;
 		}
 	}
+	for (const auto& [key, value] : m2) {
+		if (!m1.count(key)) {
+			return false;
+		}
+		else {
+			continue;
+		}
+	}
 	return true;
 }
 
