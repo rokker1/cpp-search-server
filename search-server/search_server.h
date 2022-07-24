@@ -178,7 +178,7 @@ std::vector<Document> SearchServer::FindTopDocuments(const ExecutionPolicy& poli
 //policy - status -> policy - predicate
 template <typename ExecutionPolicy>
 vector<Document> SearchServer::FindTopDocuments(const ExecutionPolicy& policy, const string_view raw_query, DocumentStatus status) const {
-    return FindTopDocuments(policy, raw_query, [status](int document_id, DocumentStatus document_status, int rating) {
+    return FindTopDocuments(policy, raw_query, [status](int, DocumentStatus document_status, int) {
         return document_status == status;
     });
 }

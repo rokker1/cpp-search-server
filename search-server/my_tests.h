@@ -59,13 +59,6 @@ vector<string> GenerateQueries(mt19937& generator, const vector<string>& diction
 template <typename ExecutionPolicy>
 void Test(string_view mark, SearchServer search_server, const string& query, ExecutionPolicy&& policy) {
     LOG_DURATION(mark);
-    // const int document_count = search_server.GetDocumentCount();
-    // int word_count = 0;
-    // for (int id = 0; id < document_count; ++id) {
-    //     const auto [words, status] = search_server.MatchDocument(policy, query, id);
-    //     word_count += words.size();
-    // }
-    // cout << word_count << endl;
     std::vector<Document> res = search_server.FindTopDocuments(policy, query);
 }
 

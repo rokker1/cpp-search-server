@@ -66,7 +66,7 @@ tuple<vector<std::string_view>, DocumentStatus> SearchServer::MatchDocument(cons
     
 }
 
-std::tuple<std::vector<std::string_view>, DocumentStatus> SearchServer::MatchDocument(const std::execution::sequenced_policy& policy, const std::string_view raw_query, int document_id) const {
+std::tuple<std::vector<std::string_view>, DocumentStatus> SearchServer::MatchDocument(const std::execution::sequenced_policy&, const std::string_view raw_query, int document_id) const {
     return MatchDocument(raw_query, document_id);
 }
 
@@ -206,7 +206,7 @@ vector<Document> SearchServer::FindTopDocuments(const string_view raw_query) con
 
 //simple - status -> policy_seq - predicate
 vector<Document> SearchServer::FindTopDocuments(const string_view raw_query, DocumentStatus status) const {
-    return FindTopDocuments(std::execution::seq, raw_query, [status](int document_id, DocumentStatus document_status, int rating) {
+    return FindTopDocuments(std::execution::seq, raw_query, [status](int, DocumentStatus document_status, int) {
         return document_status == status;
     });
 }
